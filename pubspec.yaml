@@ -1,0 +1,19 @@
+name: in_app_query
+description: "Efficient in-app-query for seamless data query and retrieval, ensuring optimal performance and user experience."
+version: 1.0.0
+repository: https://github.com/Mohiuddin655-PUB/in_app_query.git
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+  flutter: ">=1.17.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.2
+
+flutter:
