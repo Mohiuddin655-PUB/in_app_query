@@ -310,6 +310,11 @@ class QueryBuilder {
     return QueryBuilder(List.from(_data), this);
   }
 
+  QueryBuilder limitToLast(int limit) {
+    _data = _data.toList().reversed.take(limit).toList();
+    return QueryBuilder(List.from(_data), this);
+  }
+
   List<Map<String, dynamic>> build() => _data;
 
   Future<List<Map<String, dynamic>>> execute([int executionTime = 100]) {

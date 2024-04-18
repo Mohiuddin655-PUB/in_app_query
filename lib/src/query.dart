@@ -33,5 +33,5 @@ class Query {
     this.isNull,
   });
 
-  factory Query.filter(Filter filter) => Query(filter);
+  const Query.filter(Filter filter) : this(filter);
 }
