@@ -95,43 +95,11 @@ void main() {
       'country': 'Australia'
     },
   ];
-  _all(data);
   _queryTest(data);
   _sortingTest(data);
   _selectionTest();
+  _pagination(data);
   runApp(const MyApp());
-}
-
-void _all(List<Map<String, dynamic>> data) {
-  // QueryBuilder query
-  var simple = QueryBuilder(data)
-      .where("username", isNull: false)
-      .where("country", isEqualTo: "Japan")
-      .orderBy("age", descending: true)
-      .limit(3)
-      .build();
-  simple.output("OUTPUT: SIMPLE");
-  /*
-  OUTPUT:
-  {id: id_2, username: olivia_adams, email: olivia_adams@hotmail.com, age: 57, country: Japan}
-  {id: id_10, username: sarah_carter, email: sarah_carter@gmail.com, age: 55, country: Japan}
-  {id: id_4, username: olivia_adams, email: olivia_adams@demo.com, age: 53, country: Japan}
-  */
-
-  // QueryBuilder pagination
-  var pagination = QueryBuilder(data)
-      .where("username", isNull: false)
-      .startAfter(["id_3"])
-      .limit(3)
-      .build();
-
-  pagination.output("OUTPUT: PAGINATION");
-  /*
-  OUTPUT:
-  {id: id_4, username: olivia_adams, email: olivia_adams@demo.com, age: 53, country: Japan}
-  {id: id_5, username: peter_brown, email: peter_brown@gmail.com, age: 57, country: China}
-  {id: id_6, username: olivia_adams, email: olivia_adams@yahoo.com, age: 30, country: Brazil}
-  */
 }
 
 void _queryTest(List<Map<String, dynamic>> data) {
@@ -156,9 +124,9 @@ void _queryTest(List<Map<String, dynamic>> data) {
       .build();
 
   simple.output(
-      "Simple Query Result: Query by username == olivia_adams and age <= 50");
+      "Query output(simple): Query by username == olivia_adams and age <= 50");
   /*
-  Simple Query Result: Query by username == olivia_adams and age <= 50
+  Query output(simple): Query by username == olivia_adams and age <= 50
   {id: id_3, username: olivia_adams, email: olivia_adams@test.com, age: 36, country: Brazil}
   {id: id_6, username: olivia_adams, email: olivia_adams@yahoo.com, age: 30, country: Brazil}
   */
@@ -177,16 +145,15 @@ void _queryTest(List<Map<String, dynamic>> data) {
       ]))
       .build();
 
-  complex.output("Query Result with OR and AND condition:");
+  complex.output("Query output(filter): Query with OR and AND condition");
   /*
-  Query Result with OR and AND condition:
+  Query output(filter): Query with OR and AND condition
   {id: id_4, username: olivia_adams, email: olivia_adams@demo.com, age: 53, country: Japan}
   {id: id_2, username: olivia_adams, email: olivia_adams@hotmail.com, age: 57, country: Japan}
   */
 }
 
 void _sortingTest(List<Map<String, dynamic>> data) {
-  // QueryBuilder with multiple orderBy statements
   var result = QueryBuilder(data)
       .orderBy("username")
       .orderBy("email")
@@ -194,22 +161,23 @@ void _sortingTest(List<Map<String, dynamic>> data) {
       .orderBy("country")
       .build();
 
-  result.output("OUTPUTS: Sorted by username(asc), age(des) and country(asc)");
+  result.output(
+      "Sorted output: Sorted by username(asc), email(asc), age(des) and country(asc)");
   /*
-  OUTPUTS: Sorted by username(asc), age(des) and country(asc)
+  Sorted output: Sorted by username(asc), email(asc), age(des) and country(asc)
   {id: id_1, username: daniel_white, email: daniel_white@example.com, age: 43, country: India}
   {id: id_7, username: emma_smith, email: emma_smith@example.com, age: 49, country: Germany}
   {id: id_8, username: olivia_adams, email: olivia_adams@demo.com, age: 53, country: Canada}
   {id: id_4, username: olivia_adams, email: olivia_adams@demo.com, age: 53, country: Japan}
+  {id: id_12, username: olivia_adams, email: olivia_adams@demo.com, age: null, country: US}
   {id: id_2, username: olivia_adams, email: olivia_adams@hotmail.com, age: 57, country: Japan}
   {id: id_3, username: olivia_adams, email: olivia_adams@test.com, age: 36, country: Brazil}
+  {id: id_13, username: olivia_adams, email: olivia_adams@yahoo.com, age: 53, country: Australia}
   {id: id_6, username: olivia_adams, email: olivia_adams@yahoo.com, age: 30, country: Brazil}
   {id: id_5, username: peter_brown, email: peter_brown@gmail.com, age: 57, country: China}
   {id: id_9, username: peter_brown, email: peter_brown@hotmail.com, age: 65, country: Brazil}
   {id: id_10, username: sarah_carter, email: sarah_carter@gmail.com, age: 55, country: Japan}
   {id: id_11, username: null, email: sarah_carter@gmail.com, age: 55, country: Japan}
-  {id: id_12, username: olivia_adams, email: olivia_adams@demo.com, age: null, country: US}
-  {id: id_13, username: olivia_adams, email: olivia_adams@yahoo.com, age: 53, country: Australia}
   */
 }
 
@@ -221,41 +189,135 @@ void _selectionTest() {
     {'username': 'daniel', 'age': 40, 'country': 'UK'},
     {'username': 'emma', 'age': 45, 'country': 'Germany'}
   ];
-  // Data selection with QueryBuilder like startAt
-  var startAt = QueryBuilder(data).startAt(['charlie']).build();
-  startAt.output("Selection output: startAt");
 
   // Data selection with QueryBuilder like endAt
-  var endAt = QueryBuilder(data).endAt(['charlie']).build();
+  var endAt = QueryBuilder(data).endAt(['daniel']).build();
   endAt.output("Selection output: endAt");
+  /*
+  Selection output: endAt
+  {username: alice, age: 25, country: USA}
+  {username: bob, age: 30, country: Canada}
+  {username: charlie, age: 35, country: Australia}
+  {username: daniel, age: 40, country: UK}
+  */
 
-  // Data selection with QueryBuilder like startAfter
-  var startAfter = QueryBuilder(data).startAfter(['charlie']).build();
-  startAfter.output("Selection output: startAfter");
+  // Data selection with QueryBuilder like startAtDocument
+  var endAtDocument = QueryBuilder(data).endAtDocument(
+      {'username': 'daniel', 'age': 40, 'country': 'UK'}).build();
+  endAtDocument.output("Selection output: endAtDocument");
+  /*
+  Selection output: endAtDocument
+  {username: alice, age: 25, country: USA}
+  {username: bob, age: 30, country: Canada}
+  {username: charlie, age: 35, country: Australia}
+  {username: daniel, age: 40, country: UK}
+  */
 
   // Data selection with QueryBuilder like endBefore
-  var endBefore = QueryBuilder(data).endBefore(['charlie']).build();
+  var endBefore = QueryBuilder(data).endBefore(['daniel']).build();
   endBefore.output("Selection output: endBefore");
-
-  // Data selection with QueryBuilder like startAfterDocument
-  var startAfterDocument = QueryBuilder(data).startAfterDocument(
-      {'username': 'charlie', 'age': 35, 'country': 'Australia'}).build();
-  startAfterDocument.output("Selection output: startAfterDocument");
+  /*
+  Selection output: endBefore
+  {username: alice, age: 25, country: USA}
+  {username: bob, age: 30, country: Canada}
+  {username: charlie, age: 35, country: Australia}
+  */
 
   // Data selection with QueryBuilder like endBeforeDocument
   var endBeforeDocument = QueryBuilder(data).endBeforeDocument(
-      {'username': 'charlie', 'age': 35, 'country': 'Australia'}).build();
+      {'username': 'daniel', 'age': 40, 'country': 'UK'}).build();
   endBeforeDocument.output("Selection output: endBeforeDocument");
+  /*
+  Selection output: endBeforeDocument
+  {username: alice, age: 25, country: USA}
+  {username: bob, age: 30, country: Canada}
+  {username: charlie, age: 35, country: Australia}
+  */
 
-  // Data selection with QueryBuilder like startAtEndAt
-  var startAtEndAt =
-      QueryBuilder(data).startAt(['bob']).endAt(["daniel"]).build();
+  // Data selection with QueryBuilder like startAt
+  var startAt = QueryBuilder(data).startAt(['bob']).build();
+  startAt.output("Selection output: startAt");
+  /*
+  Selection output: startAt
+  {username: bob, age: 30, country: Canada}
+  {username: charlie, age: 35, country: Australia}
+  {username: daniel, age: 40, country: UK}
+  {username: emma, age: 45, country: Germany}
+  */
+
+  // Data selection with QueryBuilder like startAtDocument
+  var startAtDocument = QueryBuilder(data).startAtDocument(
+      {'username': 'bob', 'age': 30, 'country': 'Canada'}).build();
+  startAtDocument.output("Selection output: startAtDocument");
+  /*
+  Selection output: startAtDocument
+  {username: bob, age: 30, country: Canada}
+  {username: charlie, age: 35, country: Australia}
+  {username: daniel, age: 40, country: UK}
+  {username: emma, age: 45, country: Germany}
+  */
+
+  // Data selection with QueryBuilder like startAfter
+  var startAfter = QueryBuilder(data).startAfter(['bob']).build();
+  startAfter.output("Selection output: startAfter");
+  /*
+  Selection output: startAfter
+  {username: charlie, age: 35, country: Australia}
+  {username: daniel, age: 40, country: UK}
+  {username: emma, age: 45, country: Germany}
+  */
+
+  // Data selection with QueryBuilder like startAfterDocument
+  var startAfterDocument = QueryBuilder(data).startAfterDocument(
+      {'username': 'bob', 'age': 30, 'country': 'Canada'}).build();
+  startAfterDocument.output("Selection output: startAfterDocument");
+  /*
+  Selection output: startAfterDocument
+  {username: charlie, age: 35, country: Australia}
+  {username: daniel, age: 40, country: UK}
+  {username: emma, age: 45, country: Germany}
+  */
+
+  // Data selection with QueryBuilder like startAt and endAt
+  var startAtEndAt = QueryBuilder(data).startAt(
+    ["bob", 30],
+  ).endAt(
+    ['daniel', 40],
+  ).build();
   startAtEndAt.output("Selection output: startAtEndAt");
+  /*
+  Selection output: startAtEndAt
+  {username: bob, age: 30, country: Canada}
+  {username: charlie, age: 35, country: Australia}
+  {username: daniel, age: 40, country: UK}
+  */
+
+  // Data selection with QueryBuilder like startAtDocument and endAtDocument
+  var startAtDocumentEndAtDocument = QueryBuilder(data).startAtDocument(
+    {'username': 'bob', 'age': 30, 'country': 'Canada'},
+  ).endAtDocument(
+    {'username': 'daniel', 'age': 40, 'country': 'UK'},
+  ).build();
+  startAtDocumentEndAtDocument
+      .output("Selection output: startAtDocumentEndAtDocument");
+  /*
+  Selection output: startAtDocumentEndAtDocument
+  {username: bob, age: 30, country: Canada}
+  {username: charlie, age: 35, country: Australia}
+  {username: daniel, age: 40, country: UK}
+  */
 
   // Data selection with QueryBuilder like startAfter and endBefore
-  var startAfterEndBefore =
-      QueryBuilder(data).startAfter(['bob']).endBefore(["daniel"]).build();
+  var startAfterEndBefore = QueryBuilder(data).startAfter(
+    ["bob", 30],
+  ).endBefore(
+    ['daniel', 40],
+  ).build();
   startAfterEndBefore.output("Selection output: startAfterEndBefore");
+  /*
+  Selection output: startAfterEndBefore
+  {username: charlie, age: 35, country: Australia}
+  */
 
   // Data selection with QueryBuilder like startAfterDocument and endBeforeDocument
   var startAfterDocumentEndBeforeDocument =
@@ -266,46 +328,40 @@ void _selectionTest() {
   ).build();
   startAfterDocumentEndBeforeDocument
       .output("Selection output: startAfterDocumentEndBeforeDocument");
-
   /*
-  OUTPUTS:
-
-  Selection output: startAt
-  {username: charlie, age: 35, country: Australia}
-  {username: daniel, age: 40, country: UK}
-  {username: emma, age: 45, country: Germany}
-
-  Selection output: endAt
-  {username: alice, age: 25, country: USA}
-  {username: bob, age: 30, country: Canada}
-  {username: charlie, age: 35, country: Australia}
-
-  Selection output: startAfter
-  {username: daniel, age: 40, country: UK}
-  {username: emma, age: 45, country: Germany}
-
-  Selection output: endBefore
-  {username: alice, age: 25, country: USA}
-  {username: bob, age: 30, country: Canada}
-
-  Selection output: startAfterDocument
-  {username: daniel, age: 40, country: UK}
-  {username: emma, age: 45, country: Germany}
-
-  Selection output: endBeforeDocument
-  {username: alice, age: 25, country: USA}
-  {username: bob, age: 30, country: Canada}
-
-  Selection output: startAtEndAt
-  {username: bob, age: 30, country: Canada}
-  {username: charlie, age: 35, country: Australia}
-  {username: daniel, age: 40, country: UK}
-
-  Selection output: startAfterEndBefore
-  {username: charlie, age: 35, country: Australia}
-
   Selection output: startAfterDocumentEndBeforeDocument
   {username: charlie, age: 35, country: Australia}
+  */
+}
+
+void _pagination(List<Map<String, dynamic>> data) {
+  // Simple pagination
+  var simple = QueryBuilder(data)
+      .where("username", isNull: false)
+      .where("country", isEqualTo: "Japan")
+      .orderBy("age", descending: true)
+      .limit(3)
+      .build();
+  simple.output("Pagination output: simple");
+  /*
+  Pagination output: simple:
+  {id: id_2, username: olivia_adams, email: olivia_adams@hotmail.com, age: 57, country: Japan}
+  {id: id_10, username: sarah_carter, email: sarah_carter@gmail.com, age: 55, country: Japan}
+  {id: id_4, username: olivia_adams, email: olivia_adams@demo.com, age: 53, country: Japan}
+  */
+
+  // Complex pagination
+  var pagination = QueryBuilder(data)
+      .where("username", isNull: false)
+      .startAfter(["id_3"])
+      .limit(3)
+      .build();
+  pagination.output("Pagination output: selection");
+  /*
+  Pagination output: complex
+  {id: id_4, username: olivia_adams, email: olivia_adams@demo.com, age: 53, country: Japan}
+  {id: id_5, username: peter_brown, email: peter_brown@gmail.com, age: 57, country: China}
+  {id: id_6, username: olivia_adams, email: olivia_adams@yahoo.com, age: 30, country: Brazil}
   */
 }
 

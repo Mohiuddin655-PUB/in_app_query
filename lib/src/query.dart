@@ -1,4 +1,3 @@
-import 'field_path.dart';
 import 'filter.dart';
 
 class Query {
@@ -35,6 +34,4 @@ class Query {
   });
 
   factory Query.filter(Filter filter) => Query(filter);
-
-  factory Query.path(FieldPath path) => Query(path);
 }

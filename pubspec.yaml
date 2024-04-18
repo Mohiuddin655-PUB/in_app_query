@@ -1,6 +1,6 @@
 name: in_app_query
 description: "Efficient in-app-query for seamless data query and retrieval, ensuring optimal performance and user experience."
-version: 1.0.0
+version: 1.0.1
 repository: https://github.com/Mohiuddin655-PUB/in_app_query.git
 
 environment:
