@@ -135,8 +135,8 @@ void _all(List<Map<String, dynamic>> data) {
 }
 
 void _queryTest(List<Map<String, dynamic>> data) {
-  // QueryBuilder build
-  var result = QueryBuilder(data)
+  // Simple query
+  var simple = QueryBuilder(data)
       // .where('username', isNull: true)
       // .where('username', isNull: false)
       .where('username', isEqualTo: "olivia_adams")
@@ -155,11 +155,33 @@ void _queryTest(List<Map<String, dynamic>> data) {
       // .where('posts', arrayNotContainsAny: ["a", "b"])
       .build();
 
-  result.output("OUTPUT: Query by username == olivia_adams and age <= 50");
+  simple.output(
+      "Simple Query Result: Query by username == olivia_adams and age <= 50");
   /*
-  OUTPUT: Query by username == olivia_adams and age <= 50
+  Simple Query Result: Query by username == olivia_adams and age <= 50
   {id: id_3, username: olivia_adams, email: olivia_adams@test.com, age: 36, country: Brazil}
   {id: id_6, username: olivia_adams, email: olivia_adams@yahoo.com, age: 30, country: Brazil}
+  */
+
+  // complex query
+  var complex = QueryBuilder(data)
+      .where(const Filter.or([
+        Filter("age", isEqualTo: 30),
+        Filter('age', isEqualTo: 53),
+        Filter('age', isEqualTo: 63),
+        Filter('country', isEqualTo: "Japan"),
+      ]))
+      .where(const Filter.and([
+        Filter('country', isEqualTo: "Japan"),
+        Filter('username', isEqualTo: "olivia_adams"),
+      ]))
+      .build();
+
+  complex.output("Query Result with OR and AND condition:");
+  /*
+  Query Result with OR and AND condition:
+  {id: id_4, username: olivia_adams, email: olivia_adams@demo.com, age: 53, country: Japan}
+  {id: id_2, username: olivia_adams, email: olivia_adams@hotmail.com, age: 57, country: Japan}
   */
 }
 

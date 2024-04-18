@@ -20,26 +20,12 @@ class Filter {
   final Object? isGreaterThan;
   final Object? isGreaterThanOrEqualTo;
   final Object? arrayContains;
+  final Object? arrayNotContains;
   final Iterable<Object?>? arrayContainsAny;
+  final Iterable<Object?>? arrayNotContainsAny;
   final Iterable<Object?>? whereIn;
   final Iterable<Object?>? whereNotIn;
   final bool? isNull;
-
-  const Filter._(
-    this.field, {
-    this.isEqualTo,
-    this.isNotEqualTo,
-    this.isLessThan,
-    this.isLessThanOrEqualTo,
-    this.isGreaterThan,
-    this.isGreaterThanOrEqualTo,
-    this.arrayContains,
-    this.arrayContainsAny,
-    this.whereIn,
-    this.whereNotIn,
-    this.isNull,
-    this.type = Filters.none,
-  });
 
   const Filter(
     this.field, {
@@ -50,11 +36,31 @@ class Filter {
     this.isGreaterThan,
     this.isGreaterThanOrEqualTo,
     this.arrayContains,
+    this.arrayNotContains,
     this.arrayContainsAny,
+    this.arrayNotContainsAny,
     this.whereIn,
     this.whereNotIn,
     this.isNull,
   }) : type = Filters.none;
+
+  const Filter._(
+    this.field, {
+    this.isEqualTo,
+    this.isNotEqualTo,
+    this.isLessThan,
+    this.isLessThanOrEqualTo,
+    this.isGreaterThan,
+    this.isGreaterThanOrEqualTo,
+    this.arrayContains,
+    this.arrayNotContains,
+    this.arrayContainsAny,
+    this.arrayNotContainsAny,
+    this.whereIn,
+    this.whereNotIn,
+    this.isNull,
+    this.type = Filters.none,
+  });
 
   const Filter.and(List<Filter> filters) : this._(filters, type: Filters.and);
 
