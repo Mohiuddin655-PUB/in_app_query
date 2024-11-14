@@ -317,7 +317,8 @@ class QueryBuilder {
 
   List<Map<String, dynamic>> build() => _data;
 
-  Future<List<Map<String, dynamic>>> execute([int executionTime = 100]) {
+  Future<List<Map<String, dynamic>>> execute([int executionTime = 100]) async {
+    if (executionTime <= 0) return build();
     return Future.delayed(Duration(milliseconds: executionTime)).then((_) {
       return build();
     });
