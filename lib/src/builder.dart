@@ -5,7 +5,7 @@ class QueryBuilder {
   final List<Map<String, dynamic>> _data;
   final Map<String, Sorting> _orders;
 
-  const QueryBuilder._(this._data, this._orders);
+  QueryBuilder._(this._data, this._orders);
 
   factory QueryBuilder(List<Map<String, dynamic>> data) {
     return QueryBuilder._(List.unmodifiable(data), const {});
@@ -142,8 +142,16 @@ class QueryBuilder {
           !_iterableContains(value, filter.arrayContains)) {
         return false;
       }
+      if (filter.arrayNotContains != null &&
+          _iterableContains(value, filter.arrayNotContains)) {
+        return false;
+      }
       if (filter.arrayContainsAny != null &&
           !_iterableContainsAny(value, filter.arrayContainsAny!)) {
+        return false;
+      }
+      if (filter.arrayNotContainsAny != null &&
+          _iterableContainsAny(value, filter.arrayNotContainsAny!)) {
         return false;
       }
       if (filter.whereIn != null && !filter.whereIn!.contains(value)) {
@@ -192,54 +200,50 @@ class QueryBuilder {
 
   QueryBuilder startAt(List<dynamic> values) {
     final fields = _orderFields;
-    final filtered = _data.where((doc) {
-      return _cursorCompare(doc, values, fields) >= 0;
-    }).toList();
-    return QueryBuilder._(filtered, _orders);
+    return QueryBuilder._(
+      _data.where((doc) => _cursorCompare(doc, values, fields) >= 0).toList(),
+      _orders,
+    );
   }
 
   QueryBuilder startAfter(List<dynamic> values) {
     final fields = _orderFields;
-    final filtered = _data.where((doc) {
-      return _cursorCompare(doc, values, fields) > 0;
-    }).toList();
-    return QueryBuilder._(filtered, _orders);
+    return QueryBuilder._(
+      _data.where((doc) => _cursorCompare(doc, values, fields) > 0).toList(),
+      _orders,
+    );
   }
 
   QueryBuilder startAtDocument(Map<String, dynamic> document) {
-    final values = _orderFields.map((f) => document[f]).toList();
-    return startAt(values);
+    return startAt(_orderFields.map((f) => document[f]).toList());
   }
 
   QueryBuilder startAfterDocument(Map<String, dynamic> document) {
-    final values = _orderFields.map((f) => document[f]).toList();
-    return startAfter(values);
+    return startAfter(_orderFields.map((f) => document[f]).toList());
   }
 
   QueryBuilder endAt(List<dynamic> values) {
     final fields = _orderFields;
-    final filtered = _data.where((doc) {
-      return _cursorCompare(doc, values, fields) <= 0;
-    }).toList();
-    return QueryBuilder._(filtered, _orders);
+    return QueryBuilder._(
+      _data.where((doc) => _cursorCompare(doc, values, fields) <= 0).toList(),
+      _orders,
+    );
   }
 
   QueryBuilder endBefore(List<dynamic> values) {
     final fields = _orderFields;
-    final filtered = _data.where((doc) {
-      return _cursorCompare(doc, values, fields) < 0;
-    }).toList();
-    return QueryBuilder._(filtered, _orders);
+    return QueryBuilder._(
+      _data.where((doc) => _cursorCompare(doc, values, fields) < 0).toList(),
+      _orders,
+    );
   }
 
   QueryBuilder endAtDocument(Map<String, dynamic> document) {
-    final values = _orderFields.map((f) => document[f]).toList();
-    return endAt(values);
+    return endAt(_orderFields.map((f) => document[f]).toList());
   }
 
   QueryBuilder endBeforeDocument(Map<String, dynamic> document) {
-    final values = _orderFields.map((f) => document[f]).toList();
-    return endBefore(values);
+    return endBefore(_orderFields.map((f) => document[f]).toList());
   }
 
   List<String> get _orderFields => _orders.keys.toList();
@@ -249,7 +253,13 @@ class QueryBuilder {
     List<dynamic> values,
     List<String> fields,
   ) {
-    for (int i = 0; i < values.length; i++) {
+    final len = fields.isEmpty
+        ? values.length
+        : values.length < fields.length
+            ? values.length
+            : fields.length;
+
+    for (int i = 0; i < len; i++) {
       final a =
           fields.isNotEmpty ? doc[fields[i]] : doc.values.elementAtOrNull(i);
       final b = values.elementAtOrNull(i);
@@ -258,7 +268,7 @@ class QueryBuilder {
       if (b == null) return 1;
       final cmp = _compare(a, b);
       if (cmp != 0) {
-        final sort = _orders[fields[i]];
+        final sort = fields.isNotEmpty ? _orders[fields[i]] : null;
         return (sort != null && sort.descending) ? -cmp : cmp;
       }
     }
