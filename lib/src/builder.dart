@@ -232,7 +232,7 @@ class QueryBuilder {
 
   List<String> get _orderFields => _orders.keys.toList();
 
-  static int _cursorCompare(
+  int _cursorCompare(
     Map<String, dynamic> doc,
     List<dynamic> values,
     List<String> fields,
@@ -245,7 +245,10 @@ class QueryBuilder {
       if (a == null) return -1;
       if (b == null) return 1;
       final cmp = _compare(a, b);
-      if (cmp != 0) return cmp;
+      if (cmp != 0) {
+        final sort = _orders[fields[i]];
+        return (sort != null && sort.descending) ? -cmp : cmp;
+      }
     }
     return 0;
   }
