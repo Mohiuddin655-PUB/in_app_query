@@ -83,22 +83,34 @@ class QueryBuilder {
   QueryBuilder _applyAndFilter(List<Filter> filters) {
     var result = _data;
     for (final filter in filters) {
-      result = _applySingleFilter(result, filter);
+      if (filter.type.isNoneFilter) {
+        result = _applySingleFilter(result, filter);
+      } else {
+        result = QueryBuilder._(result, _orders)._applyFilter(filter)._data;
+      }
     }
     return QueryBuilder._(result, _orders);
   }
 
   QueryBuilder _applyOrFilter(List<Filter> filters) {
-    final seen = <Object?>{};
-    final result = <Map<String, dynamic>>[];
+    final matchedIndices = <int>{};
 
     for (final filter in filters) {
-      for (final doc in _applySingleFilter(_data, filter)) {
-        final key = doc['id'] ?? doc.hashCode;
-        if (seen.add(key)) result.add(doc);
+      for (int i = 0; i < _data.length; i++) {
+        if (matchedIndices.contains(i)) continue;
+        final doc = _data[i];
+        final matches = filter.type.isNoneFilter
+            ? _applySingleFilter([doc], filter).isNotEmpty
+            : QueryBuilder._([doc], _orders)
+                ._applyFilter(filter)
+                ._data
+                .isNotEmpty;
+        if (matches) matchedIndices.add(i);
       }
     }
-    return QueryBuilder._(result, _orders);
+
+    final sortedIndices = matchedIndices.toList()..sort();
+    return QueryBuilder._(sortedIndices.map((i) => _data[i]).toList(), _orders);
   }
 
   static List<Map<String, dynamic>> _applySingleFilter(
