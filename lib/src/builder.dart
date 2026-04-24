@@ -2,64 +2,16 @@ import 'filter.dart';
 import 'sorting.dart';
 
 class QueryBuilder {
-  final QueryBuilder? parent;
-  List<Map<String, dynamic>> _data;
-  Map<String, Sorting> orders;
+  final List<Map<String, dynamic>> _data;
+  final Map<String, Sorting> _orders;
 
-  QueryBuilder(
-    this._data, [
-    this.parent,
-    Map<String, Sorting>? orders,
-  ]) : orders = orders ?? {};
+  const QueryBuilder._(this._data, this._orders);
 
-  QueryBuilder _filter(Filter filter) {
-    if (filter.type.isAndFilter) {
-      _data = _applyAndFilter(filter.field as List<Filter>);
-    } else if (filter.type.isOrFilter) {
-      _data = _applyOrFilter(filter.field as List<Filter>);
-    } else {
-      _data = _applySingleFilter(filter);
-    }
-    return this;
+  factory QueryBuilder(List<Map<String, dynamic>> data) {
+    return QueryBuilder._(List.unmodifiable(data), const {});
   }
 
-  List<Map<String, dynamic>> _applySingleFilter(Filter filter) {
-    return _data.where((doc) {
-      final i = doc[filter.field];
-      return (filter.isEqualTo == null || i == filter.isEqualTo) &&
-          (filter.isNotEqualTo == null || i != filter.isNotEqualTo) &&
-          (filter.isLessThan == null || i < filter.isLessThan) &&
-          (filter.isLessThanOrEqualTo == null ||
-              i <= filter.isLessThanOrEqualTo) &&
-          (filter.isGreaterThan == null || i > filter.isGreaterThan) &&
-          (filter.isGreaterThanOrEqualTo == null ||
-              i >= filter.isGreaterThanOrEqualTo) &&
-          (filter.arrayContains == null ||
-              (i is Iterable && i.contains(filter.arrayContains))) &&
-          (filter.arrayContainsAny == null ||
-              (i is Iterable &&
-                  i.any((e) => filter.arrayContainsAny!.contains(e)))) &&
-          (filter.whereIn == null || filter.whereIn!.contains(i)) &&
-          (filter.whereNotIn == null || !filter.whereNotIn!.contains(i)) &&
-          (filter.isNull == null || (i == null) == filter.isNull);
-    }).toList();
-  }
-
-  List<Map<String, dynamic>> _applyAndFilter(List<Filter> filters) {
-    List<Map<String, dynamic>> result = _data;
-    for (var filter in filters) {
-      result = QueryBuilder(result)._applySingleFilter(filter);
-    }
-    return result;
-  }
-
-  List<Map<String, dynamic>> _applyOrFilter(List<Filter> filters) {
-    List<Map<String, dynamic>> result = [];
-    for (var filter in filters) {
-      result.addAll(QueryBuilder(_data)._applySingleFilter(filter));
-    }
-    return result.toSet().toList();
-  }
+  // ─── Filter ───────────────────────────────────────────────────────────────
 
   QueryBuilder where(
     Object field, {
@@ -77,250 +29,273 @@ class QueryBuilder {
     Iterable<Object?>? whereNotIn,
     bool? isNull,
   }) {
-    if (field is Filter) {
-      return _filter(field);
-    } else {
-      _data = _data.where((doc) {
-        final i = doc[field];
-        if (isEqualTo != null && i == isEqualTo) {
-          return true;
-        } else if (isNotEqualTo != null && i != isNotEqualTo) {
-          return true;
-        } else if (isLessThan != null && i != null && i < isLessThan) {
-          return true;
-        } else if (isLessThanOrEqualTo != null &&
-            i != null &&
-            i <= isLessThanOrEqualTo) {
-          return true;
-        } else if (isGreaterThan != null && i != null && i > isGreaterThan) {
-          return true;
-        } else if (isGreaterThanOrEqualTo != null &&
-            i != null &&
-            i >= isGreaterThanOrEqualTo) {
-          return true;
-        } else if (arrayContains != null &&
-            i is Iterable &&
-            i.contains(arrayContains)) {
-          return true;
-        } else if (arrayNotContains != null &&
-            i is Iterable &&
-            !i.contains(arrayNotContains)) {
-          return true;
-        } else if (arrayContainsAny != null &&
-            i is Iterable &&
-            i.any((e) => arrayContainsAny.contains(e))) {
-          return true;
-        } else if (arrayNotContainsAny != null &&
-            i is Iterable &&
-            !i.any((e) => arrayNotContainsAny.contains(e))) {
-          return true;
-        } else if (whereIn != null && whereIn.contains(i)) {
-          return true;
-        } else if (whereNotIn != null && whereNotIn.contains(i)) {
-          return true;
-        } else if (isNull != null && (i == null) == isNull) {
-          return true;
-        } else {
-          return false;
-        }
-      }).toList();
-      return QueryBuilder(List.from(_data), this, orders);
-    }
+    if (field is Filter) return _applyFilter(field);
+
+    final filtered = _data.where((doc) {
+      final value = doc[field];
+      if (isEqualTo != null && value != isEqualTo) return false;
+      if (isNotEqualTo != null && value == isNotEqualTo) return false;
+      if (isLessThan != null && !_isLessThan(value, isLessThan)) return false;
+      if (isLessThanOrEqualTo != null &&
+          !_isLessThanOrEqual(value, isLessThanOrEqualTo)) {
+        return false;
+      }
+      if (isGreaterThan != null && !_isGreaterThan(value, isGreaterThan)) {
+        return false;
+      }
+      if (isGreaterThanOrEqualTo != null &&
+          !_isGreaterThanOrEqual(value, isGreaterThanOrEqualTo)) {
+        return false;
+      }
+      if (arrayContains != null && !_iterableContains(value, arrayContains)) {
+        return false;
+      }
+      if (arrayNotContains != null &&
+          _iterableContains(value, arrayNotContains)) {
+        return false;
+      }
+      if (arrayContainsAny != null &&
+          !_iterableContainsAny(value, arrayContainsAny)) {
+        return false;
+      }
+      if (arrayNotContainsAny != null &&
+          _iterableContainsAny(value, arrayNotContainsAny)) {
+        return false;
+      }
+      if (whereIn != null && !whereIn.contains(value)) return false;
+      if (whereNotIn != null && whereNotIn.contains(value)) return false;
+      if (isNull != null && (value == null) != isNull) return false;
+      return true;
+    }).toList();
+
+    return QueryBuilder._(filtered, _orders);
   }
 
-  QueryBuilder _applyOrders() {
-    _data.sort((a, b) {
-      int i = 0;
-      while (i < orders.length) {
-        var sort = orders.values.elementAt(i);
-        var field = sort.field;
-        final x = a[field];
-        final y = b[field];
+  QueryBuilder _applyFilter(Filter filter) {
+    if (filter.type.isAndFilter) {
+      return _applyAndFilter(filter.field as List<Filter>);
+    } else if (filter.type.isOrFilter) {
+      return _applyOrFilter(filter.field as List<Filter>);
+    }
+    return QueryBuilder._(_applySingleFilter(_data, filter), _orders);
+  }
 
-        // If both values are null, consider them equal
-        if (x == null && y == null) {
-          i++;
-          continue; // Skip to the next field
-        }
+  QueryBuilder _applyAndFilter(List<Filter> filters) {
+    var result = _data;
+    for (final filter in filters) {
+      result = _applySingleFilter(result, filter);
+    }
+    return QueryBuilder._(result, _orders);
+  }
 
-        // If x is null, and y is not, place a at the end
-        if (x == null && y != null) return 1;
+  QueryBuilder _applyOrFilter(List<Filter> filters) {
+    final seen = <Object?>{};
+    final result = <Map<String, dynamic>>[];
 
-        // If y is null, and x is not, place b at the end
-        if (y == null && x != null) return -1;
+    for (final filter in filters) {
+      for (final doc in _applySingleFilter(_data, filter)) {
+        final key = doc['id'] ?? doc.hashCode;
+        if (seen.add(key)) result.add(doc);
+      }
+    }
+    return QueryBuilder._(result, _orders);
+  }
 
-        // Perform regular comparison
-        var comparison = x.compareTo(y);
-        if (comparison != 0) {
-          // If descending is provided and true for this field, reverse the comparison
-          return sort.descending ? -comparison : comparison;
-        }
-        i++;
+  static List<Map<String, dynamic>> _applySingleFilter(
+    List<Map<String, dynamic>> data,
+    Filter filter,
+  ) {
+    return data.where((doc) {
+      final value = doc[filter.field];
+      if (filter.isEqualTo != null && value != filter.isEqualTo) return false;
+      if (filter.isNotEqualTo != null && value == filter.isNotEqualTo) {
+        return false;
+      }
+      if (filter.isLessThan != null && !_isLessThan(value, filter.isLessThan)) {
+        return false;
+      }
+      if (filter.isLessThanOrEqualTo != null &&
+          !_isLessThanOrEqual(value, filter.isLessThanOrEqualTo)) {
+        return false;
+      }
+      if (filter.isGreaterThan != null &&
+          !_isGreaterThan(value, filter.isGreaterThan)) {
+        return false;
+      }
+      if (filter.isGreaterThanOrEqualTo != null &&
+          !_isGreaterThanOrEqual(value, filter.isGreaterThanOrEqualTo)) {
+        return false;
+      }
+      if (filter.arrayContains != null &&
+          !_iterableContains(value, filter.arrayContains)) {
+        return false;
+      }
+      if (filter.arrayContainsAny != null &&
+          !_iterableContainsAny(value, filter.arrayContainsAny!)) {
+        return false;
+      }
+      if (filter.whereIn != null && !filter.whereIn!.contains(value)) {
+        return false;
+      }
+      if (filter.whereNotIn != null && filter.whereNotIn!.contains(value)) {
+        return false;
+      }
+      if (filter.isNull != null && (value == null) != filter.isNull) {
+        return false;
+      }
+      return true;
+    }).toList();
+  }
+
+  // ─── Sorting ──────────────────────────────────────────────────────────────
+
+  QueryBuilder orderBy(String field, {bool descending = false}) {
+    final newOrders = Map<String, Sorting>.from(_orders)
+      ..[field] = Sorting(field, descending: descending);
+    return QueryBuilder._(_sorted(_data, newOrders), newOrders);
+  }
+
+  static List<Map<String, dynamic>> _sorted(
+    List<Map<String, dynamic>> data,
+    Map<String, Sorting> orders,
+  ) {
+    if (orders.isEmpty) return data;
+    final result = List<Map<String, dynamic>>.from(data);
+    result.sort((a, b) {
+      for (final sort in orders.values) {
+        final x = a[sort.field];
+        final y = b[sort.field];
+        if (x == null && y == null) continue;
+        if (x == null) return 1;
+        if (y == null) return -1;
+        final cmp = _compare(x, y);
+        if (cmp != 0) return sort.descending ? -cmp : cmp;
       }
       return 0;
     });
-    return QueryBuilder(List.from(_data), this, orders);
+    return result;
   }
 
-  QueryBuilder orderBy(String field, {bool descending = false}) {
-    orders[field] = Sorting(field, descending: descending);
-    return _applyOrders();
-  }
-
-  QueryBuilder endAt(List<dynamic> values) {
-    _data = _data.where((doc) {
-      for (int i = 0; i < values.length; i++) {
-        try {
-          final a = doc.values.elementAtOrNull(i);
-          final b = values[i];
-          if (a != null && b != null) {
-            if (a.compareTo(b) > 0) return false;
-            if (a.compareTo(b) < 0) return true;
-          }
-        } catch (_) {}
-      }
-      return true;
-    }).toList();
-    return QueryBuilder(List.from(_data), this);
-  }
-
-  QueryBuilder endAtDocument(Map<String, dynamic> document) {
-    _data = _data.takeWhile((doc) {
-      for (int i = 0; i < doc.length; i++) {
-        try {
-          var field = doc.keys.elementAtOrNull(i);
-          var a = doc[field];
-          var b = document[field];
-          if (a != null && b != null) {
-            if (a.compareTo(b) <= 0) return true;
-            if (a.compareTo(b) > 0) return false;
-          }
-        } catch (_) {}
-      }
-      return false;
-    }).toList();
-    return QueryBuilder(List.from(_data), this);
-  }
-
-  QueryBuilder endBefore(List<dynamic> values) {
-    _data = _data.where((doc) {
-      for (int i = 0; i < values.length; i++) {
-        try {
-          final a = doc.values.elementAtOrNull(i);
-          final b = values[i];
-          if (a != null && b != null) {
-            if (a.compareTo(b) >= 0) return false;
-          }
-        } catch (_) {}
-      }
-      return true;
-    }).toList();
-    return QueryBuilder(List.from(_data), this);
-  }
-
-  QueryBuilder endBeforeDocument(Map<String, dynamic> document) {
-    _data = _data.takeWhile((doc) {
-      for (int i = 0; i < doc.length; i++) {
-        try {
-          var field = doc.keys.elementAtOrNull(i);
-          var a = doc[field];
-          var b = document[field];
-          if (a != null && b != null) {
-            if (a.compareTo(b) < 0) return true;
-            if (a.compareTo(b) > 0) return false;
-          }
-        } catch (_) {}
-      }
-      return false;
-    }).toList();
-    return QueryBuilder(List.from(_data), this);
-  }
+  // ─── Cursors ──────────────────────────────────────────────────────────────
 
   QueryBuilder startAt(List<dynamic> values) {
-    _data = _data.where((doc) {
-      for (int i = 0; i < values.length; i++) {
-        try {
-          final a = doc.values.elementAtOrNull(i);
-          final b = values.elementAtOrNull(i);
-          if (a != null && b != null) {
-            if (a.compareTo(b) < 0) return false;
-            if (a.compareTo(b) > 0) return true;
-          }
-        } catch (_) {}
-      }
-      return true;
+    final fields = _orderFields;
+    final filtered = _data.where((doc) {
+      return _cursorCompare(doc, values, fields) >= 0;
     }).toList();
-    return QueryBuilder(List.from(_data), this);
-  }
-
-  QueryBuilder startAtDocument(Map<String, dynamic> document) {
-    _data = _data.skipWhile((doc) {
-      for (int i = 0; i < doc.length; i++) {
-        try {
-          var field = doc.keys.elementAtOrNull(i);
-          final a = doc[field];
-          final b = document[field];
-          if (a != null && b != null) {
-            if (a.compareTo(b) < 0) return true;
-            if (a.compareTo(b) > 0) return false;
-          }
-        } catch (_) {}
-      }
-      return false;
-    }).toList();
-    return QueryBuilder(List.from(_data), this);
+    return QueryBuilder._(filtered, _orders);
   }
 
   QueryBuilder startAfter(List<dynamic> values) {
-    _data = _data.where((doc) {
-      for (int i = 0; i < values.length; i++) {
-        try {
-          final a = doc.values.elementAtOrNull(i);
-          final b = values.elementAtOrNull(i);
-          if (a != null && b != null) {
-            if (a.compareTo(b) <= 0) return false;
-          }
-        } catch (_) {}
-      }
-      return true;
+    final fields = _orderFields;
+    final filtered = _data.where((doc) {
+      return _cursorCompare(doc, values, fields) > 0;
     }).toList();
-    return QueryBuilder(List.from(_data), this);
+    return QueryBuilder._(filtered, _orders);
+  }
+
+  QueryBuilder startAtDocument(Map<String, dynamic> document) {
+    final values = _orderFields.map((f) => document[f]).toList();
+    return startAt(values);
   }
 
   QueryBuilder startAfterDocument(Map<String, dynamic> document) {
-    _data = _data.skipWhile((doc) {
-      for (int i = 0; i < doc.length; i++) {
-        try {
-          var field = doc.keys.elementAtOrNull(i);
-          final a = doc[field];
-          final b = document[field];
-          if (a != null && b != null) {
-            if (a.compareTo(b) <= 0) return true;
-            if (a.compareTo(b) > 0) return false;
-          }
-        } catch (_) {}
-      }
-      return false;
+    final values = _orderFields.map((f) => document[f]).toList();
+    return startAfter(values);
+  }
+
+  QueryBuilder endAt(List<dynamic> values) {
+    final fields = _orderFields;
+    final filtered = _data.where((doc) {
+      return _cursorCompare(doc, values, fields) <= 0;
     }).toList();
-    return QueryBuilder(List.from(_data), this);
+    return QueryBuilder._(filtered, _orders);
   }
 
-  QueryBuilder limit(int limit) {
-    _data = _data.take(limit).toList();
-    return QueryBuilder(List.from(_data), this);
+  QueryBuilder endBefore(List<dynamic> values) {
+    final fields = _orderFields;
+    final filtered = _data.where((doc) {
+      return _cursorCompare(doc, values, fields) < 0;
+    }).toList();
+    return QueryBuilder._(filtered, _orders);
   }
 
-  QueryBuilder limitToLast(int limit) {
-    _data = _data.toList().reversed.take(limit).toList();
-    return QueryBuilder(List.from(_data), this);
+  QueryBuilder endAtDocument(Map<String, dynamic> document) {
+    final values = _orderFields.map((f) => document[f]).toList();
+    return endAt(values);
   }
 
-  List<Map<String, dynamic>> build() => _data;
+  QueryBuilder endBeforeDocument(Map<String, dynamic> document) {
+    final values = _orderFields.map((f) => document[f]).toList();
+    return endBefore(values);
+  }
 
-  Future<List<Map<String, dynamic>>> execute([int executionTime = 100]) async {
-    if (executionTime <= 0) return build();
-    return Future.delayed(Duration(milliseconds: executionTime)).then((_) {
-      return build();
-    });
+  List<String> get _orderFields => _orders.keys.toList();
+
+  static int _cursorCompare(
+    Map<String, dynamic> doc,
+    List<dynamic> values,
+    List<String> fields,
+  ) {
+    for (int i = 0; i < values.length; i++) {
+      final a =
+          fields.isNotEmpty ? doc[fields[i]] : doc.values.elementAtOrNull(i);
+      final b = values.elementAtOrNull(i);
+      if (a == null && b == null) continue;
+      if (a == null) return -1;
+      if (b == null) return 1;
+      final cmp = _compare(a, b);
+      if (cmp != 0) return cmp;
+    }
+    return 0;
+  }
+
+  // ─── Pagination ───────────────────────────────────────────────────────────
+
+  QueryBuilder limit(int count) {
+    assert(count >= 0, 'limit must be non-negative');
+    return QueryBuilder._(_data.take(count).toList(), _orders);
+  }
+
+  QueryBuilder limitToLast(int count) {
+    assert(count >= 0, 'limitToLast must be non-negative');
+    return QueryBuilder._(
+      _data.reversed.take(count).toList().reversed.toList(),
+      _orders,
+    );
+  }
+
+  // ─── Terminal ─────────────────────────────────────────────────────────────
+
+  List<Map<String, dynamic>> build() => List.unmodifiable(_data);
+
+  Future<List<Map<String, dynamic>>> execute([int delayMs = 100]) {
+    if (delayMs <= 0) return Future.value(build());
+    return Future.delayed(Duration(milliseconds: delayMs), build);
+  }
+
+  // ─── Private Comparators ──────────────────────────────────────────────────
+
+  static bool _isLessThan(Object? a, Object? b) =>
+      a is Comparable && b is Comparable && a.compareTo(b) < 0;
+
+  static bool _isLessThanOrEqual(Object? a, Object? b) =>
+      a is Comparable && b is Comparable && a.compareTo(b) <= 0;
+
+  static bool _isGreaterThan(Object? a, Object? b) =>
+      a is Comparable && b is Comparable && a.compareTo(b) > 0;
+
+  static bool _isGreaterThanOrEqual(Object? a, Object? b) =>
+      a is Comparable && b is Comparable && a.compareTo(b) >= 0;
+
+  static bool _iterableContains(Object? value, Object? target) =>
+      value is Iterable && value.contains(target);
+
+  static bool _iterableContainsAny(Object? value, Iterable<Object?> targets) =>
+      value is Iterable && value.any(targets.contains);
+
+  static int _compare(Object a, Object b) {
+    if (a is Comparable && b is Comparable) return a.compareTo(b);
+    return 0;
   }
 }
