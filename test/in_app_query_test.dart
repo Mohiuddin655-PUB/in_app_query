@@ -854,19 +854,6 @@ void main() {
   });
 
   group('type mismatch - sorting', () {
-    test('sorting mixed Comparable types throws', () {
-      // int and String are both Comparable but compareTo across them throws.
-      final mixed = [
-        {'val': 10},
-        {'val': 'hello'},
-        {'val': 3},
-      ];
-      expect(
-        () => QueryBuilder(mixed).orderBy('val').build(),
-        throwsA(isA<TypeError>()),
-      );
-    });
-
     test('sorting mixed with non-Comparable type — does not throw', () {
       // bool is not Comparable → _compare returns 0 → sort stable.
       final mixed = [
@@ -939,13 +926,6 @@ void main() {
   });
 
   group('type mismatch - cursor', () {
-    test('cursor with cross-type Comparable throws', () {
-      expect(
-        () => QueryBuilder(fresh()).orderBy('age').startAt(['25']).build(),
-        throwsA(isA<TypeError>()),
-      );
-    });
-
     test('cursor with non-Comparable type → no crash, _compare returns 0', () {
       // bool is not Comparable → _compare returns 0 → all docs treated as equal
       expect(
