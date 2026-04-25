@@ -304,29 +304,25 @@ class QueryBuilder {
   static bool _isLessThan(Object? a, Object? b) {
     if (a == null || b == null) return false;
     if (a is num && b is num) return a < b;
-    if (a.runtimeType != b.runtimeType) false;
-    return a is Comparable && b is Comparable && a.compareTo(b) < 0;
+    return false;
   }
 
   static bool _isLessThanOrEqual(Object? a, Object? b) {
     if (a == null || b == null) return false;
     if (a is num && b is num) return a <= b;
-    if (a.runtimeType != b.runtimeType) false;
-    return a is Comparable && b is Comparable && a.compareTo(b) <= 0;
+    return false;
   }
 
   static bool _isGreaterThan(Object? a, Object? b) {
     if (a == null || b == null) return false;
     if (a is num && b is num) return a > b;
-    if (a.runtimeType != b.runtimeType) false;
-    return a is Comparable && b is Comparable && a.compareTo(b) > 0;
+    return false;
   }
 
   static bool _isGreaterThanOrEqual(Object? a, Object? b) {
     if (a == null || b == null) return false;
     if (a is num && b is num) return a >= b;
-    if (a.runtimeType != b.runtimeType) false;
-    return a is Comparable && b is Comparable && a.compareTo(b) >= 0;
+    return false;
   }
 
   static bool _iterableContains(Object? value, Object? target) =>

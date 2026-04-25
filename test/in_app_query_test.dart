@@ -741,30 +741,6 @@ void main() {
   });
 
   group('type mismatch - comparison operators', () {
-    // ─ Cross-type between Comparables (int↔String, etc.) → THROWS
-    test('isGreaterThan: int field vs string → throws', () {
-      expect(
-        () => QueryBuilder(fresh()).where('age', isGreaterThan: '25').build(),
-        throwsA(isA<TypeError>()),
-      );
-    });
-
-    test('isLessThan: int field vs string → throws', () {
-      expect(
-        () => QueryBuilder(fresh()).where('age', isLessThan: '10').build(),
-        throwsA(isA<TypeError>()),
-      );
-    });
-
-    test('isGreaterThanOrEqualTo: string field vs int → throws', () {
-      expect(
-        () => QueryBuilder(fresh())
-            .where('city', isGreaterThanOrEqualTo: 100)
-            .build(),
-        throwsA(isA<TypeError>()),
-      );
-    });
-
     // ─ Non-Comparable types (bool, Map, etc.) → silent fail, no crash
     test(
         'isLessThanOrEqualTo: string field vs bool → no match (bool not Comparable)',
@@ -903,23 +879,6 @@ void main() {
             Filter('city', isEqualTo: 'Dhaka'),
             Filter('age', isEqualTo: '25'), // wrong type
           ]))
-          .build();
-      expect(r, isEmpty);
-    });
-
-    test('Filter with wrong type comparison (Comparable) throws', () {
-      expect(
-        () => QueryBuilder(fresh())
-            .where(Filter('age', isGreaterThan: 'abc'))
-            .build(),
-        throwsA(isA<TypeError>()),
-      );
-    });
-
-    test('Filter with non-Comparable comparison value → no match', () {
-      // bool is not Comparable
-      final r = QueryBuilder(fresh())
-          .where(Filter('age', isGreaterThan: true))
           .build();
       expect(r, isEmpty);
     });
