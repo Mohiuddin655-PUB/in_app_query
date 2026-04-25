@@ -301,17 +301,33 @@ class QueryBuilder {
 
   // ─── Private Comparators ──────────────────────────────────────────────────
 
-  static bool _isLessThan(Object? a, Object? b) =>
-      a is Comparable && b is Comparable && a.compareTo(b) < 0;
+  static bool _isLessThan(Object? a, Object? b) {
+    if (a == null || b == null) return false;
+    if (a is num && b is num) return a < b;
+    if (a.runtimeType != b.runtimeType) false;
+    return a is Comparable && b is Comparable && a.compareTo(b) < 0;
+  }
 
-  static bool _isLessThanOrEqual(Object? a, Object? b) =>
-      a is Comparable && b is Comparable && a.compareTo(b) <= 0;
+  static bool _isLessThanOrEqual(Object? a, Object? b) {
+    if (a == null || b == null) return false;
+    if (a is num && b is num) return a <= b;
+    if (a.runtimeType != b.runtimeType) false;
+    return a is Comparable && b is Comparable && a.compareTo(b) <= 0;
+  }
 
-  static bool _isGreaterThan(Object? a, Object? b) =>
-      a is Comparable && b is Comparable && a.compareTo(b) > 0;
+  static bool _isGreaterThan(Object? a, Object? b) {
+    if (a == null || b == null) return false;
+    if (a is num && b is num) return a > b;
+    if (a.runtimeType != b.runtimeType) false;
+    return a is Comparable && b is Comparable && a.compareTo(b) > 0;
+  }
 
-  static bool _isGreaterThanOrEqual(Object? a, Object? b) =>
-      a is Comparable && b is Comparable && a.compareTo(b) >= 0;
+  static bool _isGreaterThanOrEqual(Object? a, Object? b) {
+    if (a == null || b == null) return false;
+    if (a is num && b is num) return a >= b;
+    if (a.runtimeType != b.runtimeType) false;
+    return a is Comparable && b is Comparable && a.compareTo(b) >= 0;
+  }
 
   static bool _iterableContains(Object? value, Object? target) =>
       value is Iterable && value.contains(target);
@@ -320,7 +336,10 @@ class QueryBuilder {
       value is Iterable && value.any(targets.contains);
 
   static int _compare(Object a, Object b) {
-    if (a is Comparable && b is Comparable) return a.compareTo(b);
+    if (a is num && b is num) return a.compareTo(b);
+    if (a is Comparable && b is Comparable && a.runtimeType == b.runtimeType) {
+      return a.compareTo(b);
+    }
     return 0;
   }
 }
