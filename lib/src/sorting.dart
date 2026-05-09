@@ -1,22 +1,30 @@
+import 'package:meta/meta.dart' show immutable;
+
+@immutable
 class Sorting {
   final String field;
   final bool descending;
 
-  const Sorting(
-    this.field, {
-    this.descending = false,
-  });
+  const Sorting(this.field, {this.descending = false});
+
+  Sorting copyWith({String? field, bool? descending}) {
+    return Sorting(
+      field ?? this.field,
+      descending: descending ?? this.descending,
+    );
+  }
 
   @override
-  int get hashCode => field.hashCode;
+  int get hashCode => Object.hash(field, descending);
 
   @override
   bool operator ==(Object other) {
-    return field.hashCode == other.hashCode;
+    if (identical(this, other)) return true;
+    return other is Sorting &&
+        other.field == field &&
+        other.descending == descending;
   }
 
   @override
-  String toString() {
-    return field;
-  }
+  String toString() => 'Sorting(field: $field, descending: $descending)';
 }

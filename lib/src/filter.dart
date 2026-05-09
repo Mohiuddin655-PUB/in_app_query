@@ -1,3 +1,5 @@
+import 'package:meta/meta.dart' show immutable;
+
 enum Filters {
   and,
   or,
@@ -10,6 +12,7 @@ enum Filters {
   bool get isNoneFilter => this == none;
 }
 
+@immutable
 class Filter {
   final Filters type;
   final Object field;
@@ -65,4 +68,19 @@ class Filter {
   const Filter.and(List<Filter> filters) : this._(filters, type: Filters.and);
 
   const Filter.or(List<Filter> filters) : this._(filters, type: Filters.or);
+
+  bool get hasAnyCondition =>
+      isEqualTo != null ||
+      isNotEqualTo != null ||
+      isLessThan != null ||
+      isLessThanOrEqualTo != null ||
+      isGreaterThan != null ||
+      isGreaterThanOrEqualTo != null ||
+      arrayContains != null ||
+      arrayNotContains != null ||
+      arrayContainsAny != null ||
+      arrayNotContainsAny != null ||
+      whereIn != null ||
+      whereNotIn != null ||
+      isNull != null;
 }

@@ -1,3 +1,5 @@
+import 'package:meta/meta.dart' show immutable;
+
 enum Selections {
   endAt,
   endAtDocument,
@@ -28,6 +30,7 @@ enum Selections {
   bool get isStartAtDocument => this == startAtDocument;
 }
 
+@immutable
 class Selection {
   final Object? value;
   final Selections type;
@@ -36,10 +39,7 @@ class Selection {
     return value is Iterable<Object?> ? value as Iterable<Object?> : null;
   }
 
-  const Selection._(
-    this.value, {
-    this.type = Selections.none,
-  });
+  const Selection._(this.value, {this.type = Selections.none});
 
   const Selection.empty() : this._(null);
 
